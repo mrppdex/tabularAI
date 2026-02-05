@@ -97,7 +97,18 @@ Training Generative Chain...
 SUCCESS: Deterministic mapping preserved!
 ```
 
-## Project Structure
+### 3. Reverse Engineering (Spec from Data)
+You can extract a JSON spec from an existing CSV file. This allows you to clone the structure and rules of a private dataset without sharing the data itself.
+
+```bash
+python demo_reverse.py
+```
+
+This script:
+1.  Loads `source_data.csv`.
+2.  Infers types (Numeric, Categorical) and detects functional dependencies (Mappings).
+3.  Saves the result to `inferred_spec.json`.
+4.  Generates new synthetic data from this inferred spec to verify quality.
 
 -   `agus_method.py`: PyTorch implementation of the XGB+Transformer+RoRA model.
 -   `agus_gen.py`: The `AgusGenerator` class managing the auto-regressive chain and dependency logic.
