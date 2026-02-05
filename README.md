@@ -37,10 +37,10 @@ graph TD
     Scanner -->|Find 1:1 / M:1 Rules| Rules[Dependency Map]
     
     subgraph Generation Loop
-        Start((Start)) --> Col1[Generate Col 1 <br/> Marginal Dist]
-        Col1 --> Col2{Is Col 2 <br/> Dependent?}
-        Col2 -->|No| Model2[Run Agus Model <br/> P(C2 | C1)]
-        Col2 -->|Yes| Map2[Apply Mapping <br/> C2 = f(C1)]
+        Start((Start)) --> Col1["Generate Col 1 <br/> Marginal Dist"]
+        Col1 --> Col2{"Is Col 2 <br/> Dependent?"}
+        Col2 -->|No| Model2["Run Agus Model <br/> P(C2 | C1)"]
+        Col2 -->|Yes| Map2["Apply Mapping <br/> C2 = f(C1)"]
         Model2 --> Col3[...]
         Map2 --> Col3
     end
