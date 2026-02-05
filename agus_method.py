@@ -110,24 +110,53 @@ class AgusModel(BaseEstimator, ClassifierMixin):
                 n_estimators=n_estimators, 
                 max_depth=max_depth,
                 n_jobs=1,
-                tree_method="hist",
-                enable_categorical=True
+                tree_method="hist"
+                # enable_categorical=True - Removing to use manual encoding for safety
             )
         else:
              self.xgb = xgb.XGBRegressor(
                 n_estimators=n_estimators, 
                 max_depth=max_depth,
                 n_jobs=1,
-                tree_method="hist",
-                enable_categorical=True
+                tree_method="hist"
             )
             
         self.nn_model = None
         self.label_encoder = LabelEncoder()
+        from sklearn.preprocessing import OrdinalEncoder
+        self.feature_encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
+        self.cat_cols = []
+        self.is_fitted = False
         
+    def _preprocess_X(self, X):
+        X_out = X.copy()
+        if self.is_fitted:
+            if self.cat_cols:
+                X_out[self.cat_cols] = self.feature_encoder.transform(X[self.cat_cols])
+                # Convert to float/int to satisfy XGBoost strictness if needed, but array of float is safest
+                # Actually OrdinalEncoder returns float by default.
+                for col in self.cat_cols:
+                    X_out[col] = X_out[col].astype(float)
+        else:
+            # Detect categorical columns (object or category)
+            self.cat_cols = [c for c in X.columns if X[c].dtype == 'object' or hasattr(X[c], 'cat')]
+            if self.cat_cols:
+                # Convert all to string to ensure uniformity for OrdinalEncoder
+                X_cat_str = X[self.cat_cols].astype(str)
+                self.feature_encoder.fit(X_cat_str)
+                X_out[self.cat_cols] = self.feature_encoder.transform(X_cat_str)
+                for col in self.cat_cols:
+                    X_out[col] = X_out[col].astype(float)
+            self.is_fitted = True
+            
+        return X_out
+
     def fit(self, X, y):
         # 1. Fit XGBoost
         print(f"Fitting XGBoost ({self.objective})...")
+        
+        # Preprocess Features
+        X_enc = self._preprocess_X(X)
         
         y_proc = y
         if self.objective == 'classification':
@@ -139,11 +168,11 @@ class AgusModel(BaseEstimator, ClassifierMixin):
             y_proc = np.array(y).astype(float)
             num_outputs = 1
         
-        self.xgb.fit(X, y_proc)
+        self.xgb.fit(X_enc, y_proc)
         # 2. Extract Leaves
         print("Extracting Leaves...")
         # apply() returns leaf indices [n_samples, n_estimators]
-        leaves = self.xgb.apply(X) 
+        leaves = self.xgb.apply(X_enc) 
         
         # Remap leaf IDs to unique global IDs for embedding
         # We will map each (tree_idx, leaf_val) to a unique integer in 0..TotalLeaves
@@ -227,7 +256,8 @@ class AgusModel(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
-        leaves = self.xgb.apply(X)
+        X_enc = self._preprocess_X(X)
+        leaves = self.xgb.apply(X_enc)
         leaves_mapped = np.zeros_like(leaves)
         for i in range(leaves.shape[1]):
             known_classes = self.leaf_encoders[i].classes_
@@ -250,8 +280,9 @@ class AgusModel(BaseEstimator, ClassifierMixin):
     def predict_proba(self, X):
         if self.objective != 'classification':
             raise ValueError("predict_proba is only available for classification")
-            
-        leaves = self.xgb.apply(X)
+        
+        X_enc = self._preprocess_X(X)
+        leaves = self.xgb.apply(X_enc)
         leaves_mapped = np.zeros_like(leaves)
         for i in range(leaves.shape[1]):
             known_classes = self.leaf_encoders[i].classes_
