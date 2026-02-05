@@ -7,6 +7,7 @@ A robust, deep learning-based pipeline for generating high-fidelity synthetic ta
 -   **Auto-Regressive Generative Chain**: Models the full joint distribution $P(X_1, \dots, X_n)$ by decomposing it into a sequence of conditional probabilities $P(X_i | X_{<i})$.
 -   **Hybrid Architecture ("Agus Method")**: Uses XGBoost trees as a "Tokenizer" for tabular data, followed by a Random Transformer for high-dimensional projection, and RoRA for efficient fine-tuning.
 -   **Specification-Driven**: Generate compliant source data from a simple JSON schema (`sdtm_spec.json`).
+-   **Reverse Engineering**: Extract a JSON spec from an existing dataset to clone its structure and rules (`SpecExtractor`).
 -   **Deterministic Integrity**: Heuristically detects and enforces functional dependencies (1:1 and M:1 mappings) such as `ARM` $\leftrightarrow$ `ARMCD` or `Zip` $\to$ `City`, ensuring consistency where probabilistic models might fail.
 
 ## Architecture

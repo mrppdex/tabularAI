@@ -1,0 +1,86 @@
+{
+    "rows": 200,
+    "columns": [
+        {
+            "name": "USUBJID",
+            "type": "faker",
+            "provider": "bothify",
+            "params": {
+                "text": "????-####"
+            }
+        },
+        {
+            "name": "AGE",
+            "type": "int",
+            "min": 18,
+            "max": 85
+        },
+        {
+            "name": "SEX",
+            "type": "categorical",
+            "values": [
+                "F",
+                "M"
+            ],
+            "probs": [
+                0.615,
+                0.385
+            ]
+        },
+        {
+            "name": "RACE",
+            "type": "categorical",
+            "values": [
+                "WHITE",
+                "BLACK OR AFRICAN AMERICAN",
+                "ASIAN",
+                "OTHER"
+            ],
+            "probs": [
+                0.57,
+                0.185,
+                0.18,
+                0.065
+            ]
+        },
+        {
+            "name": "ARM",
+            "type": "categorical",
+            "values": [
+                "Drug 20mg",
+                "Drug 10mg",
+                "Placebo"
+            ],
+            "probs": [
+                0.375,
+                0.325,
+                0.3
+            ]
+        },
+        {
+            "name": "HEIGHT",
+            "type": "normal",
+            "mean": 169.35822405655824,
+            "std": 9.292009279272534
+        },
+        {
+            "name": "ARMCD",
+            "type": "map",
+            "source": "ARM",
+            "mapping": {
+                "Drug 20mg": "DRG20",
+                "Drug 10mg": "DRG10",
+                "Placebo": "PBO"
+            }
+        },
+        {
+            "name": "SEXN",
+            "type": "map",
+            "source": "SEX",
+            "mapping": {
+                "F": 2,
+                "M": 1
+            }
+        }
+    ]
+}

@@ -58,6 +58,109 @@ class SpecDataGenerator:
                 
         return pd.DataFrame(data)
 
+class SpecExtractor:
+    def __init__(self):
+        self.dependencies = {}
+        
+    def extract(self, df):
+        """
+        Reverse engineers a JSON spec from a pandas DataFrame.
+        """
+        rows = len(df)
+        columns = []
+        mapped_columns = []
+        cols_processed = set()
+        
+        # 1. Detect Dependencies (Mappings)
+        col_list = df.columns.tolist()
+        for i, target in enumerate(col_list):
+            if i == 0: continue
+            
+            # Check previous columns for potential source
+            potential_sources = col_list[:i]
+            
+            for source in potential_sources:
+                 try:
+                    consistency = df.groupby(source)[target].nunique()
+                    if consistency.max() == 1:
+                        mapping = df.set_index(source)[target].to_dict()
+                        
+                        safe_mapping = {}
+                        for k, v in mapping.items():
+                            k_safe = k.item() if hasattr(k, 'item') else k
+                            v_safe = v.item() if hasattr(v, 'item') else v
+                            safe_mapping[k_safe] = v_safe
+                            
+                        # Store mapped column to add LATER
+                        mapped_columns.append({
+                            "name": target,
+                            "type": "map",
+                            "source": source,
+                            "mapping": safe_mapping
+                        })
+                        cols_processed.add(target)
+                        print(f"Detected Mapping: {source} -> {target}")
+                        break
+                 except Exception:
+                     pass
+            
+            if target in cols_processed:
+                continue
+
+        # 2. Process Standard Columns
+        for col in col_list:
+            if col in cols_processed:
+                continue
+                
+            series = df[col]
+            col_spec = {"name": col}
+            
+            if pd.api.types.is_numeric_dtype(series):
+                is_integer = False
+                try:
+                    if np.all(series.dropna() % 1 == 0):
+                        is_integer = True
+                except:
+                    pass
+                
+                n_unique = series.nunique()
+                if n_unique < 20 and n_unique < rows * 0.5:
+                     col_spec["type"] = "categorical"
+                     counts = series.value_counts(normalize=True).sort_index()
+                     col_spec["values"] = [x.item() if hasattr(x, 'item') else x for x in counts.index.tolist()]
+                     col_spec["probs"] = counts.values.tolist()
+                elif is_integer:
+                    col_spec["type"] = "int"
+                    col_spec["min"] = int(series.min())
+                    col_spec["max"] = int(series.max())
+                else:
+                    col_spec["type"] = "normal"
+                    col_spec["mean"] = float(series.mean())
+                    col_spec["std"] = float(series.std())
+            else:
+                n_unique = series.nunique()
+                if n_unique < 50 and n_unique < rows * 0.8:
+                     col_spec["type"] = "categorical"
+                     counts = series.value_counts(normalize=True)
+                     col_spec["values"] = counts.index.tolist()
+                     col_spec["probs"] = counts.values.tolist()
+                else:
+                    col_spec["type"] = "faker"
+                    col_spec["provider"] = "bothify"
+                    col_spec["params"] = {"text": "????-####"}
+            
+            columns.append(col_spec)
+            cols_processed.add(col)
+            
+        # 3. Append Mapped Columns at the end
+        # This assumes depth-1 dependency structure which is true for this use case
+        columns.extend(mapped_columns)
+            
+        return {
+            "rows": rows,
+            "columns": columns
+        }
+
 if __name__ == "__main__":
     generator = SpecDataGenerator('sdtm_spec.json')
     df = generator.generate()
